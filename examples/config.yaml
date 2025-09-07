@@ -1,0 +1,44 @@
+output:
+  folder: /tmp/k8s-watcher-data
+  folderAnnotation: k8s-watcher-target-dir
+  uniqueFilenames: true
+  defaultFileMode: "0644"
+
+kubernetes:
+  # Comment out kubeconfig to use in-cluster config when deployed in Kubernetes
+  kubeconfig: /Users/wasim/.kube/config
+  namespace: default
+  skipTLSVerify: false
+
+resources:
+  type: both
+  method: WATCH
+  watchConfig:
+    serverTimeout: 60
+    clientTimeout: 66
+    errorThrottleTime: 5
+    ignoreProcessed: true
+  labels:
+    - name: app
+      value: example-app
+      script:
+        path: /tmp/notify.sh
+        timeout: 30
+      request:
+        url: http://localhost:8080/webhook
+        method: POST
+        timeout: 10
+        retry:
+          total: 3
+          connect: 5
+          read: 3
+          backoffFactor: 1.1
+        auth:
+          basic:
+            username: admin
+            password: secret
+
+logging:
+  level: INFO
+  format: JSON
+  timezone: UTC
