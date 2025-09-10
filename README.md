@@ -219,5 +219,4 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## Acknowledgments
 
-- Inspired by [kiwigrid/k8s-sidecar](https://github.com/kiwigrid/k8s-sidecar)
 - Built with [client-go](https://github.com/kubernetes/client-go)
