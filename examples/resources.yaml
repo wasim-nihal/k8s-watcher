@@ -1,0 +1,105 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-config
+  namespace: default
+  labels:
+    app: example-app
+  annotations:
+    k8s-watcher-target-dir: /tmp/k8s-watcher-data/custom-path
+data:
+  app.properties: |
+    app.name=Example Application
+    app.version=1.0.0
+    app.environment=development
+  
+  database.properties: |
+    db.host=localhost
+    db.port=5432
+    db.name=myapp
+    db.user=admin
+  
+  # Example of URL-based content
+  binary-file.url: https://example.com/download/binary
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: example-secrets
+  namespace: default
+  labels:
+    app: example-app
+type: Opaque
+stringData:
+  credentials.properties: |
+    api.key=secret-api-key-123
+    api.secret=very-secret-value-456
+    
+  tls.properties: |
+    keystore.password=keystore-password
+    truststore.password=truststore-password
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-scripts
+  namespace: default
+  labels:
+    app: example-app
+data:
+  notify.sh: |
+    #!/bin/sh
+    echo "Configuration changed at $(date)"
+    echo "Affected resource: $1"
+    echo "Namespace: $2"
+
+---
+# Example Deployment using the ConfigMap and Secret
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-app
+  template:
+    metadata:
+      labels:
+        app: example-app
+    spec:
+      containers:
+        - name: main-app
+          image: busybox
+          command: ["sh", "-c", "while true; do sleep 30; done"]
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+            - name: secrets-volume
+              mountPath: /app/secrets
+        
+        - name: k8s-watcher
+          image: k8s-watcher:latest
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+            - name: secrets-volume
+              mountPath: /app/secrets
+            - name: watcher-config
+              mountPath: /etc/k8s-watcher
+      
+      volumes:
+        - name: config-volume
+          configMap:
+            name: example-config
+        - name: secrets-volume
+          secret:
+            secretName: example-secrets
+        - name: watcher-config
+          configMap:
+            name: watcher-config
