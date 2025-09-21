@@ -33,7 +33,9 @@ type Watcher struct {
 	fileHandler       *file.Handler
 	informer          *ResourceInformer
 	processedVersions map[string]string // tracks resourceVersion of processed resources
-} // NewWatcher creates a new watcher instance
+}
+
+// NewWatcher creates a new watcher instance
 func NewWatcher(client kubernetes.Interface, cfg *config.Config) *Watcher {
 	w := &Watcher{
 		client:            client,
@@ -154,6 +156,9 @@ func (w *Watcher) handleResource(action string, obj interface{}) {
 			)
 		}
 	}
+
+	// Mark the resource as processed after successful processing
+	w.markProcessed(metadata)
 }
 
 // processResource handles a single resource for a specific label configuration
