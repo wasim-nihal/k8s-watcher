@@ -4,6 +4,9 @@
 [![GoDoc](https://godoc.org/github.com/wasim-nihal/k8s-watcher?status.svg)](https://godoc.org/github.com/wasim-nihal/k8s-watcher)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+![Banner](img/K8s-Watcher.png)
+
+
 k8s-watcher is a powerful and flexible Kubernetes sidecar application that monitors ConfigMaps and Secrets, automatically syncing their contents to the filesystem and triggering custom actions on changes.
 
 ## Features
