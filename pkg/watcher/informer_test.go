@@ -39,7 +39,7 @@ func TestNewResourceInformer(t *testing.T) {
 	}
 	handler := &MockResourceHandler{}
 
-	informer := NewResourceInformer(client, cfg, handler)
+	informer := NewResourceInformer(client, "default", cfg, handler)
 	assert.NotNil(t, informer)
 	assert.Equal(t, []string{"default"}, informer.namespaces)
 }
@@ -68,7 +68,7 @@ func TestResourceInformer_ListMode(t *testing.T) {
 
 	handler.On("OnAdd", mock.Anything).Return()
 
-	informer := NewResourceInformer(client, cfg, handler)
+	informer := NewResourceInformer(client, "default", cfg, handler)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
@@ -95,7 +95,7 @@ func TestResourceInformer_WatchMode(t *testing.T) {
 	handler.On("OnUpdate", mock.Anything, mock.Anything).Return()
 	handler.On("OnDelete", mock.Anything).Return()
 
-	informer := NewResourceInformer(client, cfg, handler)
+	informer := NewResourceInformer(client, "default", cfg, handler)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
@@ -137,7 +137,7 @@ func TestResourceInformer_Stop(t *testing.T) {
 		Type: config.ResourceTypeConfigMap,
 	}
 
-	informer := NewResourceInformer(client, cfg, handler)
+	informer := NewResourceInformer(client, "default", cfg, handler)
 	informer.Stop()
 
 	// Verify the stop channel is closed
@@ -159,7 +159,7 @@ func TestResourceInformer_GetNamespaces(t *testing.T) {
 		ResourceNames: []string{"ns1/cm1", "ns2/cm2"},
 	}
 
-	informer := NewResourceInformer(client, cfg, handler)
+	informer := NewResourceInformer(client, "default", cfg, handler)
 	namespaces := informer.getNamespaces()
 	assert.ElementsMatch(t, []string{"ns1", "ns2"}, namespaces)
 
@@ -168,7 +168,7 @@ func TestResourceInformer_GetNamespaces(t *testing.T) {
 		Type: config.ResourceTypeConfigMap,
 	}
 
-	informer = NewResourceInformer(client, cfg, handler)
+	informer = NewResourceInformer(client, "", cfg, handler)
 	namespaces = informer.getNamespaces()
 	assert.Equal(t, []string{metav1.NamespaceAll}, namespaces)
 }

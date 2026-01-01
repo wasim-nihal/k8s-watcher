@@ -21,11 +21,12 @@ type ResourceInformer struct {
 	config     *config.ResourceConfig
 	handler    ResourceHandler
 	namespaces []string
+	namespace  string
 	stopCh     chan struct{}
 }
 
 // NewResourceInformer creates a new resource informer
-func NewResourceInformer(client kubernetes.Interface, cfg *config.ResourceConfig, handler ResourceHandler) *ResourceInformer {
+func NewResourceInformer(client kubernetes.Interface, namespace string, cfg *config.ResourceConfig, handler ResourceHandler) *ResourceInformer {
 	var namespaces []string
 	if cfg.ResourceNames != nil && len(cfg.ResourceNames) > 0 {
 		// Extract namespaces from resource names
@@ -46,6 +47,7 @@ func NewResourceInformer(client kubernetes.Interface, cfg *config.ResourceConfig
 		config:     cfg,
 		handler:    handler,
 		namespaces: namespaces,
+		namespace:  namespace,
 		stopCh:     make(chan struct{}),
 	}
 }
@@ -144,6 +146,9 @@ func (r *ResourceInformer) setupEventHandlers(informer cache.SharedIndexInformer
 func (r *ResourceInformer) getNamespaces() []string {
 	if len(r.namespaces) > 0 {
 		return r.namespaces
+	}
+	if r.namespace != "" {
+		return []string{r.namespace}
 	}
 	return []string{metav1.NamespaceAll}
 }

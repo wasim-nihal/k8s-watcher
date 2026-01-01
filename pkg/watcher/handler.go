@@ -45,7 +45,7 @@ func NewWatcher(client kubernetes.Interface, cfg *config.Config) *Watcher {
 		processedVersions: make(map[string]string),
 	}
 
-	w.informer = NewResourceInformer(client, &cfg.Resources, w)
+	w.informer = NewResourceInformer(client, cfg.Kubernetes.Namespace, &cfg.Resources, w)
 	return w
 }
 
