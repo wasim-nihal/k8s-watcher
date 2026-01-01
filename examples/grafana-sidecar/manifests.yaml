@@ -1,0 +1,174 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: watcher-config
+  namespace: default
+data:
+  config.yaml: |
+    output:
+      folder: /var/lib/grafana/dashboards
+      uniqueFilenames: true
+      defaultFileMode: "0644"
+
+    kubernetes:
+      namespace: default
+
+    resources:
+      type: configmap
+      method: WATCH
+      watchConfig:
+        serverTimeout: 60
+        clientTimeout: 66
+        errorThrottleTime: 5
+        ignoreProcessed: true
+      labels:
+        - name: dashboard
+          value: "true"
+    
+    logging:
+      level: INFO
+      format: LOGFMT
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: default
+data:
+  prometheus.yaml: |-
+    {
+        "apiVersion": 1,
+        "datasources": [
+            {
+               "access":"proxy",
+                "editable": true,
+                "name": "prometheus",
+                "orgId": 1,
+                "type": "prometheus",
+                "url": "http://prometheus-service.monitoring.svc:8080",
+                "version": 1
+            }
+        ]
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: default
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      serviceAccountName: k8s-watcher
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: dashboards
+              mountPath: /var/lib/grafana/dashboards
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+          env:
+            - name: GF_PROVISIONING_DASHBOARDS_PATH
+              value: /var/lib/grafana/dashboards
+        
+        - name: k8s-watcher
+          image: nihalwasim/k8s-watcher:latest
+          imagePullPolicy: IfNotPresent
+          args: ["-config", "/etc/k8s-watcher/config.yaml"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/k8s-watcher
+            - name: dashboards
+              mountPath: /var/lib/grafana/dashboards
+      
+      volumes:
+        - name: config
+          configMap:
+            name: watcher-config
+        - name: dashboards
+          emptyDir: {}
+        - name: datasources
+          configMap:
+            name: grafana-datasources
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: default
+spec:
+  selector:
+    app: grafana
+  ports:
+    - port: 3000
+      targetPort: 3000
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8s-watcher
+  namespace: default
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: k8s-watcher
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: k8s-watcher
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: k8s-watcher
+    namespace: default
+roleRef:
+  kind: Role
+  name: k8s-watcher
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-dashboard
+  namespace: default
+  labels:
+    dashboard: "true"
+data:
+  simple-dashboard.json: |
+    {
+      "id": null,
+      "uid": "simple-dashboard",
+      "title": "Example Dashboard",
+      "tags": [ "example" ],
+      "timezone": "browser",
+      "schemaVersion": 16,
+      "version": 0,
+      "refresh": "5s",
+      "panels": []
+    }

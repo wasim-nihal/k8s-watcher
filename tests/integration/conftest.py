@@ -30,7 +30,7 @@ def kind_cluster() -> Generator[str, None, None]:
     cluster_exists = cluster_name in result.stdout
     
     if not cluster_exists:
-        print(f"\n🚀 Creating KinD cluster: {cluster_name}")
+        print(f"\nCreating KinD cluster: {cluster_name}")
         subprocess.run(
             ["kind", "create", "cluster", "--config", config_path, "--name", cluster_name],
             check=True
@@ -38,13 +38,13 @@ def kind_cluster() -> Generator[str, None, None]:
         # Wait for cluster to be ready
         time.sleep(5)
     else:
-        print(f"\n✓ Using existing KinD cluster: {cluster_name}")
+        print(f"\nUsing existing KinD cluster: {cluster_name}")
     
     yield cluster_name
     
     # Cleanup - delete cluster after all tests
     # Comment out to keep cluster for debugging
-    print(f"\n🗑️  Deleting KinD cluster: {cluster_name}")
+    print(f"\nDeleting KinD cluster: {cluster_name}")
     subprocess.run(["kind", "delete", "cluster", "--name", cluster_name])
 
 
@@ -66,14 +66,14 @@ def docker_image(kind_cluster: str) -> Generator[str, None, None]:
     # Get the project root (two levels up from this file)
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     
-    print(f"\n🔨 Building Docker image: {full_image}")
+    print(f"\nBuilding Docker image: {full_image}")
     subprocess.run(
         ["docker", "build", "-t", full_image, "."],
         cwd=project_root,
         check=True
     )
     
-    print(f"\n📦 Loading image into KinD cluster: {kind_cluster}")
+    print(f"\nLoading image into KinD cluster: {kind_cluster}")
     subprocess.run(
         ["kind", "load", "docker-image", full_image, "--name", kind_cluster],
         check=True
@@ -116,7 +116,7 @@ def test_namespace(k8s_client: client.CoreV1Api) -> Generator[str, None, None]:
     # Generate unique namespace name
     namespace_name = f"test-{uuid.uuid4().hex[:8]}"
     
-    print(f"\n📂 Creating namespace: {namespace_name}")
+    print(f"\nCreating namespace: {namespace_name}")
     
     # Create namespace
     namespace = client.V1Namespace(
@@ -130,7 +130,7 @@ def test_namespace(k8s_client: client.CoreV1Api) -> Generator[str, None, None]:
     yield namespace_name
     
     # Cleanup namespace
-    print(f"\n🗑️  Deleting namespace: {namespace_name}")
+    print(f"\nDeleting namespace: {namespace_name}")
     try:
         k8s_client.delete_namespace(
             name=namespace_name,
@@ -313,7 +313,7 @@ def watcher_deployment(
         )
     )
     
-    print(f"\n🚀 Deploying k8s-watcher to namespace: {test_namespace}")
+    print(f"\nDeploying k8s-watcher to namespace: {test_namespace}")
     apps_v1.create_namespaced_deployment(
         namespace=test_namespace,
         body=deployment
@@ -333,7 +333,7 @@ def watcher_deployment(
     
     pod_name = pods.items[0].metadata.name
     
-    print(f"⏳ Waiting for pod {pod_name} to be ready...")
+    print(f"Waiting for pod {pod_name} to be ready...")
     if not wait_for_pod_ready(k8s_client, pod_name, test_namespace, timeout=60):
         # Get logs for debugging
         from helpers import get_pod_logs
@@ -341,7 +341,7 @@ def watcher_deployment(
         print(f"Pod logs:\n{logs}")
         raise RuntimeError(f"Pod {pod_name} did not become ready in time")
     
-    print(f"✓ Pod {pod_name} is ready")
+    print(f"Pod {pod_name} is ready")
     
     deployment_info = {
         "pod_name": pod_name,
@@ -454,7 +454,7 @@ endpoints:
         )
     )
     
-    print(f"\n🎭 Deploying Mockolate mock server to namespace: {test_namespace}")
+    print(f"\nDeploying Mockolate mock server to namespace: {test_namespace}")
     k8s_client.create_namespaced_pod(
         namespace=test_namespace,
         body=pod
@@ -480,14 +480,14 @@ endpoints:
     )
     
     # Wait for pod to be ready
-    print("⏳ Waiting for Mockolate pod to be ready...")
+    print("Waiting for Mockolate pod to be ready...")
     if not wait_for_pod_ready(k8s_client, "mockolate", test_namespace, timeout=60):
         from helpers import get_pod_logs
         logs = get_pod_logs(k8s_client, "mockolate", test_namespace)
         print(f"Mockolate logs:\n{logs}")
         raise RuntimeError("Mockolate pod did not become ready in time")
     
-    print("✓ Mockolate mock server is ready")
+    print("Mockolate mock server is ready")
     
     # The service URL is: http://mockolate.<namespace>.svc.cluster.local:8080
     service_url = f"http://mockolate.{test_namespace}.svc.cluster.local:8080"
@@ -686,7 +686,7 @@ def webhook_watcher_deployment(
         )
     )
     
-    print(f"\n🚀 Deploying k8s-watcher (with webhook) to namespace: {test_namespace}")
+    print(f"\nDeploying k8s-watcher (with webhook) to namespace: {test_namespace}")
     apps_v1.create_namespaced_deployment(
         namespace=test_namespace,
         body=deployment
@@ -705,14 +705,14 @@ def webhook_watcher_deployment(
     
     pod_name = pods.items[0].metadata.name
     
-    print(f"⏳ Waiting for pod {pod_name} to be ready...")
+    print(f"Waiting for pod {pod_name} to be ready...")
     if not wait_for_pod_ready(k8s_client, pod_name, test_namespace, timeout=60):
         from helpers import get_pod_logs
         logs = get_pod_logs(k8s_client, pod_name, test_namespace)
         print(f"Pod logs:\n{logs}")
         raise RuntimeError(f"Pod {pod_name} did not become ready in time")
     
-    print(f"✓ Pod {pod_name} is ready")
+    print(f"Pod {pod_name} is ready")
     
     yield {
         "pod_name": pod_name,

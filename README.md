@@ -3,6 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/wasim-nihal/k8s-watcher)](https://goreportcard.com/report/github.com/wasim-nihal/k8s-watcher)
 [![GoDoc](https://godoc.org/github.com/wasim-nihal/k8s-watcher?status.svg)](https://godoc.org/github.com/wasim-nihal/k8s-watcher)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Integration Tests](https://github.com/wasim-nihal/k8s-watcher/actions/workflows/integration-tests.yml/badge.svg?branch=master)](https://github.com/wasim-nihal/k8s-watcher/actions/workflows/integration-tests.yml)
 
 ![Banner](img/K8s-Watcher.png)
 
@@ -145,9 +146,11 @@ resources:
       value: production
 ```
 
-## Kubernetes Integration
+## Sidecar Usage
 
-Example deployment as a sidecar:
+`k8s-watcher` is designed to run as a sidecar container to sync configuration files or secrets to a shared volume that the main application can read.
+
+### Example: Syncing Configs
 
 ```yaml
 apiVersion: apps/v1
@@ -157,18 +160,24 @@ metadata:
 spec:
   template:
     spec:
+      serviceAccountName: k8s-watcher # Ensure SA has permissions
       containers:
+        # Main Application
         - name: main-app
           image: myapp:latest
           volumeMounts:
             - name: config-volume
               mountPath: /config
         
+        # Sidecar
         - name: k8s-watcher
-          image: k8s-watcher:latest
+          image: nihalwasim/k8s-watcher:latest
+          args: ["-config", "/etc/k8s-watcher/config.yaml"]
           volumeMounts:
+            # Shared volume for output
             - name: config-volume
               mountPath: /config
+            # Watcher configuration
             - name: watcher-config
               mountPath: /etc/k8s-watcher
       
@@ -179,6 +188,10 @@ spec:
           configMap:
             name: watcher-config
 ```
+
+### Examples
+
+- [Grafana Sidecar](examples/grafana-sidecar/README.md): Using k8s-watcher to sync Grafana dashboards.
 
 ## Development
 

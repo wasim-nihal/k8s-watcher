@@ -3,6 +3,11 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
+# Build arguments
+ARG VERSION
+ARG COMMIT
+ARG DATE
+
 # Install build dependencies
 RUN apk add --no-cache git make
 
@@ -14,7 +19,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN make build
+RUN make build VERSION=${VERSION} COMMIT=${COMMIT} DATE=${DATE}
 
 # Final stage
 FROM alpine:latest

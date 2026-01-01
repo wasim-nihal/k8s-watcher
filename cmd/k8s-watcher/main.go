@@ -13,12 +13,19 @@ import (
 
 	"github.com/wasim-nihal/k8s-watcher/pkg/config"
 	"github.com/wasim-nihal/k8s-watcher/pkg/logger"
+	"github.com/wasim-nihal/k8s-watcher/pkg/version"
 	"github.com/wasim-nihal/k8s-watcher/pkg/watcher"
 )
 
 func main() {
 	configPath := flag.String("config", "config.yaml", "Path to configuration file")
+	showVersion := flag.Bool("version", false, "Show version information")
 	flag.Parse()
+
+	if *showVersion {
+		println(version.GetVersion())
+		os.Exit(0)
+	}
 
 	// Load configuration
 	cfg, err := config.NewLoader(*configPath).Load()
@@ -32,6 +39,8 @@ func main() {
 		logger.Error("Failed to initialize logger", "error", err)
 		os.Exit(1)
 	}
+
+	logger.Info("Starting k8s-watcher", "version", version.GetVersion())
 
 	// Create Kubernetes client
 	client, err := createKubernetesClient(cfg.Kubernetes)

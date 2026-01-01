@@ -54,7 +54,8 @@ def wait_for_file_in_pod(
     pod_name: str,
     namespace: str,
     file_path: str,
-    timeout: int = 30
+    timeout: int = 30,
+    container: Optional[str] = None
 ) -> bool:
     """
     Wait for a file to exist in a pod.
@@ -65,6 +66,7 @@ def wait_for_file_in_pod(
         namespace: Namespace of the pod
         file_path: Path to the file inside the pod
         timeout: Maximum time to wait in seconds
+        container: Optional container name
         
     Returns:
         True if file exists, False otherwise
@@ -72,12 +74,12 @@ def wait_for_file_in_pod(
     start_time = time.time()
     
     while time.time() - start_time < timeout:
-        if file_exists_in_pod(v1, pod_name, namespace, file_path):
+        if file_exists_in_pod(v1, pod_name, namespace, file_path, container):
             return True
         time.sleep(1)
     
     print(f"Timed out waiting for file {file_path} in pod {pod_name}")
-    logs = get_pod_logs(v1, pod_name, namespace)
+    logs = get_pod_logs(v1, pod_name, namespace, container=container)
     print(f"Pod logs:\n{logs}")
     return False
 
@@ -86,7 +88,8 @@ def file_exists_in_pod(
     v1: client.CoreV1Api,
     pod_name: str,
     namespace: str,
-    file_path: str
+    file_path: str,
+    container: Optional[str] = None
 ) -> bool:
     """
     Check if a file exists in a pod.
@@ -96,21 +99,28 @@ def file_exists_in_pod(
         pod_name: Name of the pod
         namespace: Namespace of the pod
         file_path: Path to the file inside the pod
+        container: Optional container name
         
     Returns:
         True if file exists, False otherwise
     """
     try:
         exec_command = ['/bin/sh', '-c', f'test -f {file_path} && echo exists']
+        kwargs = {
+            'command': exec_command,
+            'stderr': True,
+            'stdin': False,
+            'stdout': True,
+            'tty': False
+        }
+        if container:
+            kwargs['container'] = container
+            
         resp = stream(
             v1.connect_get_namespaced_pod_exec,
             pod_name,
             namespace,
-            command=exec_command,
-            stderr=True,
-            stdin=False,
-            stdout=True,
-            tty=False
+            **kwargs
         )
         return 'exists' in resp
     except Exception:
@@ -277,7 +287,8 @@ def get_pod_logs(
     v1: client.CoreV1Api,
     pod_name: str,
     namespace: str,
-    tail_lines: int = 100
+    tail_lines: int = 100,
+    container: Optional[str] = None
 ) -> str:
     """
     Get logs from a pod.
@@ -287,15 +298,20 @@ def get_pod_logs(
         pod_name: Name of the pod
         namespace: Namespace of the pod
         tail_lines: Number of lines to tail
+        container: Optional container name
         
     Returns:
         Pod logs as string
     """
     try:
-        return v1.read_namespaced_pod_log(
-            name=pod_name,
-            namespace=namespace,
-            tail_lines=tail_lines
-        )
+        kwargs = {
+            'name': pod_name,
+            'namespace': namespace,
+            'tail_lines': tail_lines
+        }
+        if container:
+            kwargs['container'] = container
+            
+        return v1.read_namespaced_pod_log(**kwargs)
     except client.exceptions.ApiException:
         return ""

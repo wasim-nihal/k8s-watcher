@@ -9,6 +9,14 @@ GOFLAGS=-v
 GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
 
+# Version information
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+COMMIT ?= $(shell git rev-parse --short HEAD)
+DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+LDFLAGS = -X github.com/wasim-nihal/k8s-watcher/pkg/version.Version=$(VERSION) \
+          -X github.com/wasim-nihal/k8s-watcher/pkg/version.Commit=$(COMMIT) \
+          -X github.com/wasim-nihal/k8s-watcher/pkg/version.Date=$(DATE)
+
 # Testing variables
 COVERAGE_DIR=coverage
 COVERAGE_FILE=$(COVERAGE_DIR)/coverage.out
@@ -21,7 +29,7 @@ all: clean build test
 build:
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
-	$(GO) build $(GOFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
 
 clean:
 	@echo "Cleaning..."
@@ -65,7 +73,11 @@ build-windows:
 .PHONY: docker-build docker-push
 
 docker-build:
-	docker build -t $(BINARY_NAME):latest .
+	docker build \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg DATE=$(DATE) \
+		-t $(BINARY_NAME):latest .
 
 docker-push:
 	docker push $(BINARY_NAME):latest
